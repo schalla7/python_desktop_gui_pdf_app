@@ -63,45 +63,17 @@ def setup_ui(root, output_directories):
             
     def update_image_selection_visibility(action):
         if action == "Insert Image":
-            # select_image_button.pack_forget()  # Start hidden
-    
-            # process_button.config(state=tk.DISABLED, bg="grey", width=20)
             process_button.pack_forget()
-            
-    
-            image_path_label.pack()
-            select_image_button.pack()
-            process_button.pack(padx=20, pady=20)
-            # Hide the printing options
-            # print_now_checkbox.pack_forget()
-            # print_individual_checkbox.pack_forget()
-            # print_combined_checkbox.pack_forget()
-            # print_now_var.set(False)
-            # print_individual_var.set(False)
-            # print_combined_var.set(False)
-            # Ensure the dependent checkboxes are also hidden
-            # toggle_print_options()
-            
+            image_path_label.pack(in_=middle_frame, fill=tk.X)
+            select_image_button.pack(in_=middle_frame, fill=tk.X)
+            process_button.pack(in_=middle_frame, fill=tk.X, pady=20)
         elif action == "Extract First Pages":
             image_path_label.pack_forget()
             select_image_button.pack_forget()
-            # Show the printing options
-            # print_now_checkbox.pack(side=tk.TOP, pady=5, fill=tk.X)
-            # print_now_checkbox.pack(side=tk.TOP, fill=tk.X, padx=20)
-    
-            # print_individual_checkbox.pack(side=tk.TOP, pady=5, fill=tk.X)
-            # print_combined_checkbox.pack(side=tk.TOP, pady=5, fill=tk.X)
-            # Show or hide the dependent checkboxes based on the current state
-            # toggle_print_options()
-            
         else:
             image_path_label.pack_forget()
             select_image_button.pack_forget()
-            # print_now_checkbox.pack_forget()
-            # print_individual_checkbox.pack_forget()
-            # print_combined_checkbox.pack_forget()
-            # Ensure the dependent checkboxes are also hidden
-            # toggle_print_options()
+            
             
     def add_files(files_list, action_var, process_button):
         try:
@@ -250,38 +222,50 @@ def setup_ui(root, output_directories):
                 target=process_extract_first_pages, 
                 args=(files, output_directories, root)
             ).start()
+    
+    
+    # setup_ui initialisation starts here:
+    # =====================================
             
     root.title('PDF Processing Tool')
     root.geometry('1200x700')
     
     # Configure the input-box (left) frame
-    left_frame = tk.Frame(root)  # Increased minimum size
-    left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=10)
-    files_list = tk.Listbox(left_frame, selectmode='extended')
-    files_list.pack(fill=tk.BOTH, expand=True)
+    left_frame = tk.Frame(root, width=600)  
+    left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=False, padx=20, pady=20)
+    left_frame.pack_propagate(False)
     
-
+    files_list = tk.Listbox(left_frame, selectmode='extended', width=900)
+    files_list.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+    
+    add_button = tk.Button(left_frame, text="Add Files...",
+                       font=('Helvetica', 14, 'bold'), bg='blue', fg='white',
+                       command=lambda: add_files(files_list, action_var, process_button))
+    add_button.pack(side=tk.BOTTOM, fill=tk.X, padx=20, pady=20)
+    
+    # Configure the fixed-width middle frame
+    middle_frame = tk.Frame(root, width=200)  # Set a width that suits your needs
+    middle_frame.pack(side=tk.LEFT, fill=tk.Y)
+    middle_frame.pack_propagate(False)
+    
     # Configure the output-box (right) frame
     right_frame = tk.Frame(root)  # Decreased maximum size
-    right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10, pady=10)
+    right_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     output_text = tk.Text(right_frame, state='disabled', bg="white", font=('Helvetica', 10))
-    output_text.pack(fill=tk.BOTH, expand=True)
+    output_text.pack(fill=tk.BOTH, padx=20, pady=20, expand=True)
 
     action_var = tk.StringVar(value="Select action...")
     actions = ["Extract First Pages", "Insert Image"]
     action_dropdown = tk.OptionMenu(root, action_var, *actions)
-    action_dropdown.pack(side=tk.TOP, fill=tk.X, padx=20, pady=20)
-
-    add_button = tk.Button(left_frame, text="Add Files...",
-                       font=('Helvetica', 14, 'bold'), bg='blue', fg='white',
-                       command=lambda: add_files(files_list, action_var, process_button))
-    add_button.config(width=20)
-    add_button.pack(side=tk.BOTTOM, fill=tk.X, padx=20, pady=20)
+    action_dropdown.pack(in_=middle_frame, side=tk.TOP, fill=tk.X, pady=20)
 
     image_path_var = tk.StringVar()
     image_path_label = tk.Label(root, textvariable=image_path_var)
     image_path_label.pack_forget()  # Start hidden
-    select_image_button = tk.Button(root, text="Select Image...", command=select_image_file)
+    select_image_button = tk.Button(root, 
+                                    text="Select Image...",
+                                    font=('Helvetica', 12, 'bold'), bg='blue', fg='white',
+                                    command=select_image_file)
     select_image_button.pack_forget()  # Start hidden
     
     process_button = tk.Button(
@@ -291,8 +275,8 @@ def setup_ui(root, output_directories):
         font=('Helvetica', 14, 'bold'), bg='green', fg='white',
         command=lambda: process_selected_action(action_var, files_list, image_path_var, output_directories, root)
     )
-    process_button.config(state=tk.DISABLED, bg="grey", width=20)
-    process_button.pack(padx=20, pady=20)
+    process_button.config(state=tk.DISABLED, bg="grey")
+    process_button.pack(in_=middle_frame, fill=tk.X, pady=20)
 
     files_list.drop_target_register(DND_FILES)
     files_list.dnd_bind('<<Drop>>', 
@@ -300,17 +284,6 @@ def setup_ui(root, output_directories):
     
     action_var.trace_add("write", lambda *args: update_process_button_state(action_var, files_list, process_button))
     action_var.trace_add("write", lambda *args: update_image_selection_visibility(action_var.get()))
-    
-    # print_now_var = tk.BooleanVar(value=True)
-    # print_individual_var = tk.BooleanVar(value=True)
-    # print_combined_var = tk.BooleanVar(value=True)
-
-    # print_now_checkbox = tk.Checkbutton(root, text="Also print the output now", variable=print_now_var)
-    # print_individual_checkbox = tk.Checkbutton(root, text="Print each first page separately", variable=print_individual_var)
-    # print_combined_checkbox = tk.Checkbutton(root, text="Print combination of first pages", variable=print_combined_var)
-    
-    # Bind the 'toggle_print_options' function to changes in 'print_now_var'
-    # print_now_var.trace_add('write', lambda *args: toggle_print_options())
     
     files_list.bind('<Delete>', delete_selected_items)
         
