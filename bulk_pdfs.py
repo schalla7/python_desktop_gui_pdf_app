@@ -132,6 +132,18 @@ def setup_ui(root, output_directories):
         else:
             process_button.config(state=tk.DISABLED, bg="grey")
             
+    def delete_selected_items(event=None):
+        # Get selected items, this returns a tuple of selected indices
+        selected_items = files_list.curselection()
+
+        # If nothing is selected, do nothing
+        if not selected_items:
+            return
+
+        # Reverse the list of selected items, then delete from the end
+        for i in reversed(selected_items):
+            files_list.delete(i)
+    
     # These are helper functions to update the UI and show error messages
     def update_ui_function(message):
         # Update the UI with the progress message
@@ -251,7 +263,7 @@ def setup_ui(root, output_directories):
     # Configure the input-box (left) frame
     left_frame = tk.Frame(root)  # Increased minimum size
     left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=10)
-    files_list = tk.Listbox(left_frame)
+    files_list = tk.Listbox(left_frame, selectmode='extended')
     files_list.pack(fill=tk.BOTH, expand=True)
 
     # Configure the output-box (right) frame
@@ -316,6 +328,8 @@ def setup_ui(root, output_directories):
     
     # Bind the 'toggle_print_options' function to changes in 'print_now_var'
     print_now_var.trace_add('write', lambda *args: toggle_print_options())
+    
+    files_list.bind('<Delete>', delete_selected_items)
         
     
 def setup_directories():
