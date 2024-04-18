@@ -308,6 +308,29 @@ def setup_ui(root, output_directories):
                                     font=('Helvetica', 12, 'bold'), bg='blue', fg='white',
                                     command=select_image_file)
     select_image_button.pack_forget()  # Start hidden
+    # Numeric inputs for coordinates
+    coord_frame = tk.Frame(image_group_frame)
+    coord_frame.pack(side=tk.TOP, padx=10, pady=10)
+
+    x_label = tk.Label(coord_frame, text="X:")
+    x_label.pack(side=tk.LEFT)
+    x_coord = tk.Entry(coord_frame, width=5)
+    x_coord.pack(side=tk.LEFT)
+
+    y_label = tk.Label(coord_frame, text="Y:")
+    y_label.pack(side=tk.LEFT)
+    y_coord = tk.Entry(coord_frame, width=5)
+    y_coord.pack(side=tk.LEFT)
+
+    width_label = tk.Label(coord_frame, text="Width:")
+    width_label.pack(side=tk.LEFT)
+    width_entry = tk.Entry(coord_frame, width=5)
+    width_entry.pack(side=tk.LEFT)
+
+    height_label = tk.Label(coord_frame, text="Height:")
+    height_label.pack(side=tk.LEFT)
+    height_entry = tk.Entry(coord_frame, width=5)
+    height_entry.pack(side=tk.LEFT)
     
     # Add a button to the middle frame to change the output directory
     output_directory_var = tk.StringVar()
