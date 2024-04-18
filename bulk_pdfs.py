@@ -6,7 +6,13 @@ from tkinter import filedialog, messagebox, simpledialog
 from tkinterdnd2 import DND_FILES, TkinterDnD
 import fitz  # PyMuPDF library, make sure it's installed
 import threading
+import signal
 
+
+def signal_handler(sig, frame):
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 
 def open_pdf_to_print(file_path):
@@ -34,21 +40,21 @@ def setup_ui(root, output_directories):
         output_text.config(state='disabled')
         output_text.yview(tk.END)  # Auto-scroll to the bottom
     
-    def toggle_print_options():
-        # This function will run whenever 'print_now_var' changes
-        should_print = print_now_var.get()
-        if should_print:
-            # If 'Also print the output now' is checked, show the other options and set them to True
-            print_individual_checkbox.pack(side=tk.TOP, pady=5, fill=tk.X)
-            print_combined_checkbox.pack(side=tk.TOP, pady=5, fill=tk.X)
-            print_individual_var.set(True)
-            print_combined_var.set(True)
-        else:
-            # If 'Also print the output now' is unchecked, hide the other options and set them to False
-            print_individual_checkbox.pack_forget()
-            print_combined_checkbox.pack_forget()
-            print_individual_var.set(False)
-            print_combined_var.set(False)
+    # def toggle_print_options():
+    #     # This function will run whenever 'print_now_var' changes
+    #     should_print = print_now_var.get()
+    #     if should_print:
+    #         # If 'Also print the output now' is checked, show the other options and set them to True
+    #         print_individual_checkbox.pack(side=tk.TOP, pady=5, fill=tk.X)
+    #         print_combined_checkbox.pack(side=tk.TOP, pady=5, fill=tk.X)
+    #         print_individual_var.set(True)
+    #         print_combined_var.set(True)
+    #     else:
+    #         # If 'Also print the output now' is unchecked, hide the other options and set them to False
+    #         print_individual_checkbox.pack_forget()
+    #         print_combined_checkbox.pack_forget()
+    #         print_individual_var.set(False)
+    #         print_combined_var.set(False)
     
     def resize_window(files_list, root):
         longest_path = max((files_list.get(idx) for idx in range(files_list.size())), key=len, default='')
@@ -67,38 +73,45 @@ def setup_ui(root, output_directories):
             
     def update_image_selection_visibility(action):
         if action == "Insert Image":
+            # select_image_button.pack_forget()  # Start hidden
+    
+            # process_button.config(state=tk.DISABLED, bg="grey", width=20)
+            process_button.pack_forget()
+            
+    
             image_path_label.pack()
             select_image_button.pack()
+            process_button.pack(padx=20, pady=20)
             # Hide the printing options
-            print_now_checkbox.pack_forget()
-            print_individual_checkbox.pack_forget()
-            print_combined_checkbox.pack_forget()
-            print_now_var.set(False)
-            print_individual_var.set(False)
-            print_combined_var.set(False)
+            # print_now_checkbox.pack_forget()
+            # print_individual_checkbox.pack_forget()
+            # print_combined_checkbox.pack_forget()
+            # print_now_var.set(False)
+            # print_individual_var.set(False)
+            # print_combined_var.set(False)
             # Ensure the dependent checkboxes are also hidden
-            toggle_print_options()
+            # toggle_print_options()
             
         elif action == "Extract First Pages":
             image_path_label.pack_forget()
             select_image_button.pack_forget()
             # Show the printing options
             # print_now_checkbox.pack(side=tk.TOP, pady=5, fill=tk.X)
-            print_now_checkbox.pack(side=tk.TOP, fill=tk.X, padx=20)
+            # print_now_checkbox.pack(side=tk.TOP, fill=tk.X, padx=20)
     
-            print_individual_checkbox.pack(side=tk.TOP, pady=5, fill=tk.X)
-            print_combined_checkbox.pack(side=tk.TOP, pady=5, fill=tk.X)
+            # print_individual_checkbox.pack(side=tk.TOP, pady=5, fill=tk.X)
+            # print_combined_checkbox.pack(side=tk.TOP, pady=5, fill=tk.X)
             # Show or hide the dependent checkboxes based on the current state
-            toggle_print_options()
+            # toggle_print_options()
             
         else:
             image_path_label.pack_forget()
             select_image_button.pack_forget()
-            print_now_checkbox.pack_forget()
-            print_individual_checkbox.pack_forget()
-            print_combined_checkbox.pack_forget()
+            # print_now_checkbox.pack_forget()
+            # print_individual_checkbox.pack_forget()
+            # print_combined_checkbox.pack_forget()
             # Ensure the dependent checkboxes are also hidden
-            toggle_print_options()
+            # toggle_print_options()
             
     def add_files(files_list, action_var, process_button):
         try:
@@ -189,13 +202,12 @@ def setup_ui(root, output_directories):
         log_message(f"Completed: {new_file_path}")
     
     
-    def process_extract_first_pages(files, output_directories, root, print_now, print_individual, print_combined):
+    def process_extract_first_pages(files, output_directories, root):
         combined_pdf = fitz.open()  # Create a new PDF for combining first pages
         
         for file_path in files:
             try:
                 # Logic to extract first pages goes here
-                # You would pass the actual print_now_var.get(), etc. to this function as needed
                 print(f"About to extract the first page for: [{file_path}]")
                 doc = fitz.open(file_path)
                 first_page = doc.load_page(0)
@@ -210,10 +222,6 @@ def setup_ui(root, output_directories):
                 combined_pdf.insert_pdf(doc, from_page=0, to_page=0)
                 
                 doc.close()
-                
-                # Optional print of individual files
-                if print_now and print_individual:
-                    open_pdf_to_print(individual_output_path)
                     
                 # Use root.after to safely update the UI from the main thread
                 root.after(0, update_ui_function, "Extracted first page for {}".format(file_path))
@@ -232,8 +240,8 @@ def setup_ui(root, output_directories):
         combined_pdf.close()
 
         # Optional print of the combined PDF
-        if print_now and print_combined:
-            open_pdf_to_print(combined_output_path)
+        # if print_now and print_combined:
+        #     open_pdf_to_print(combined_output_path)
     
             
     def process_selected_action(action_var, files_list, image_path_var, output_directories, root):
@@ -253,8 +261,7 @@ def setup_ui(root, output_directories):
         elif action == "Extract First Pages":
             threading.Thread(
                 target=process_extract_first_pages, 
-                args=(files, output_directories, root,
-                      print_now_var.get(), print_individual_var.get(), print_combined_var.get())
+                args=(files, output_directories, root)
             ).start()
             
     root.title('PDF Processing Tool')
@@ -263,38 +270,26 @@ def setup_ui(root, output_directories):
     # Configure the input-box (left) frame
     left_frame = tk.Frame(root)  # Increased minimum size
     left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=10)
+    files_list = tk.Listbox(left_frame, selectmode='extended')
+    files_list.pack(fill=tk.BOTH, expand=True)
     
 
     # Configure the output-box (right) frame
     right_frame = tk.Frame(root)  # Decreased maximum size
     right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10, pady=10)
-    output_text = tk.Text(right_frame, height=10, state='disabled', bg="white", font=('Helvetica', 10))
+    output_text = tk.Text(right_frame, state='disabled', bg="white", font=('Helvetica', 10))
     output_text.pack(fill=tk.BOTH, expand=True)
-    # paned_window.add(right_frame, stretch="never")
-    
-    output_text = tk.Text(right_frame, height=10, state='disabled', bg="white", font=('Helvetica', 10))
-    output_text.pack(fill=tk.BOTH, expand=False)
-    
-
-    files_list = tk.Listbox(left_frame, selectmode='extended')
-    files_list.pack(fill=tk.BOTH, expand=True)
-
-    output_list = tk.Listbox(right_frame)
-    output_list.pack(fill=tk.BOTH, expand=True)
 
     action_var = tk.StringVar(value="Select action...")
     actions = ["Extract First Pages", "Insert Image"]
-    # action_dropdown.pack(side=tk.TOP, pady=20)
     action_dropdown = tk.OptionMenu(root, action_var, *actions)
-    # action_dropdown.config(font=('Helvetica', 12), bg='blue', fg='white')
-    # action_dropdown["menu"].config(bg="blue", fg="white")
-    action_dropdown.pack(side=tk.TOP, fill=tk.X, padx=100, pady=20)
+    action_dropdown.pack(side=tk.TOP, fill=tk.X, padx=20, pady=20)
 
     add_button = tk.Button(left_frame, text="Add Files...",
-                       font=('Helvetica', 12, 'bold'), bg='blue', fg='white',
+                       font=('Helvetica', 14, 'bold'), bg='blue', fg='white',
                        command=lambda: add_files(files_list, action_var, process_button))
     add_button.config(width=20)
-    add_button.pack(side=tk.TOP, fill=tk.X, padx=20, pady=10)
+    add_button.pack(side=tk.BOTTOM, fill=tk.X, padx=20, pady=20)
 
     image_path_var = tk.StringVar()
     image_path_label = tk.Label(root, textvariable=image_path_var)
@@ -303,12 +298,14 @@ def setup_ui(root, output_directories):
     select_image_button.pack_forget()  # Start hidden
     
     process_button = tk.Button(
-        root, text="Process List", state=tk.DISABLED,
+        root, 
+        text="Process List", 
+        state=tk.DISABLED,
         font=('Helvetica', 14, 'bold'), bg='green', fg='white',
         command=lambda: process_selected_action(action_var, files_list, image_path_var, output_directories, root)
     )
-    process_button.config(state=tk.DISABLED, bg="grey")
-    process_button.pack(side=tk.TOP, pady=20)
+    process_button.config(state=tk.DISABLED, bg="grey", width=20)
+    process_button.pack(padx=20, pady=20)
 
     files_list.drop_target_register(DND_FILES)
     files_list.dnd_bind('<<Drop>>', 
@@ -317,16 +314,16 @@ def setup_ui(root, output_directories):
     action_var.trace_add("write", lambda *args: update_process_button_state(action_var, files_list, process_button))
     action_var.trace_add("write", lambda *args: update_image_selection_visibility(action_var.get()))
     
-    print_now_var = tk.BooleanVar(value=True)
-    print_individual_var = tk.BooleanVar(value=True)
-    print_combined_var = tk.BooleanVar(value=True)
+    # print_now_var = tk.BooleanVar(value=True)
+    # print_individual_var = tk.BooleanVar(value=True)
+    # print_combined_var = tk.BooleanVar(value=True)
 
-    print_now_checkbox = tk.Checkbutton(root, text="Also print the output now", variable=print_now_var)
-    print_individual_checkbox = tk.Checkbutton(root, text="Print each first page separately", variable=print_individual_var)
-    print_combined_checkbox = tk.Checkbutton(root, text="Print combination of first pages", variable=print_combined_var)
+    # print_now_checkbox = tk.Checkbutton(root, text="Also print the output now", variable=print_now_var)
+    # print_individual_checkbox = tk.Checkbutton(root, text="Print each first page separately", variable=print_individual_var)
+    # print_combined_checkbox = tk.Checkbutton(root, text="Print combination of first pages", variable=print_combined_var)
     
     # Bind the 'toggle_print_options' function to changes in 'print_now_var'
-    print_now_var.trace_add('write', lambda *args: toggle_print_options())
+    # print_now_var.trace_add('write', lambda *args: toggle_print_options())
     
     files_list.bind('<Delete>', delete_selected_items)
         
@@ -339,11 +336,12 @@ def setup_directories():
     first_pages_dir = os.path.join(outputs_dir, 'First-Pages', 'First-Pages-Individual')
     first_pages_individual_dir = os.path.join(outputs_dir, 'First-Pages', 'First-Pages-Individual')
     first_pages_combined_dir = os.path.join(outputs_dir, 'First-Pages', 'Combined')
-
+    print("Creating directories...")
     os.makedirs(backup_dir, exist_ok=True)
     os.makedirs(image_inserted_dir, exist_ok=True)
     os.makedirs(first_pages_dir, exist_ok=True)
     os.makedirs(first_pages_combined_dir, exist_ok=True)
+    print("done.\n")
 
     return {
         'backup_dir': backup_dir,
