@@ -119,6 +119,9 @@ def setup_ui(root, output_directories):
             for filename in filenames:
                 files_list.insert(tk.END, filename.strip('{}'))
             update_process_button_state(action_var, files_list, process_button)
+        except KeyboardInterrupt:
+            print("User interruption received. Exiting...")
+            sys.exit(0)
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred while adding files: {e}")
             raise
@@ -130,6 +133,9 @@ def setup_ui(root, output_directories):
                 files_list.insert("end", file.strip('{}'))
             update_process_button_state(action_var, files_list, process_button)
             resize_window(files_list, root)
+        except KeyboardInterrupt:
+            print("User interruption received. Exiting...")
+            sys.exit(0)
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred during drop: {e}")
             raise
@@ -172,6 +178,9 @@ def setup_ui(root, output_directories):
             
             try:
                 shutil.copy(file_path, output_dir)
+            except KeyboardInterrupt:
+                print("User interruption received. Exiting...")
+                sys.exit(0)
             except Exception as e:
                 error_message = "Failed to copy file for {}: {}".format(file_path, str(e))
                 print(f"\n!\n! Error!\n!\n! {error_message}\n! {e}\n!\n")
@@ -185,6 +194,9 @@ def setup_ui(root, output_directories):
                 add_image_to_pdf(new_file_path, img_pixmap)
                 # Use root.after to safely update the UI from the main thread
                 root.after(0, update_ui_function, "Completed image insertion for {}".format(file_path))
+            except KeyboardInterrupt:
+                print("User interruption received. Exiting...")
+                sys.exit(0)
             except Exception as e:
                 error_message = "Failed to insert image for {}: {}".format(file_path, str(e))
                 print(f"\n!\n! Error!\n!\n! {error_message}\n! {e}\n!\n")
@@ -225,6 +237,10 @@ def setup_ui(root, output_directories):
                     
                 # Use root.after to safely update the UI from the main thread
                 root.after(0, update_ui_function, "Extracted first page for {}".format(file_path))
+            
+            except KeyboardInterrupt:
+                print("User interruption received. Exiting...")
+                sys.exit(0)
                 
             except Exception as e:
                 error_message = "Failed to extract first page for {}: {}".format(file_path, str(e))
@@ -235,6 +251,9 @@ def setup_ui(root, output_directories):
         try:
             combined_pdf.save(combined_output_path)
             log_message(f"Successfully combined each first-page into single PDF: {combined_output_path}", "success")
+        except KeyboardInterrupt:
+            print("User interruption received. Exiting...")
+            sys.exit(0)
         except Exception as e:
             log_message(f"Failed to combined each first-page into single PDF {combined_output_path}: {str(e)}", "error")
         combined_pdf.close()
@@ -359,6 +378,9 @@ def show_error_message(message):
         messagebox.showerror("Error", message)
         try:
             root.destroy()
+        except KeyboardInterrupt:
+            print("User interruption received. Exiting...")
+            sys.exit(0)
         except Exception as e:
             print("Error while trying to close the application: " + str(e), file=sys.stderr)
     sys.exit(1)  # Ensure the application exits
@@ -369,6 +391,9 @@ def backup_originals(files_list, backup_dir):
             file_name = os.path.basename(file_path)
             dest_path = os.path.join(backup_dir, file_name)
             shutil.copy2(file_path, dest_path)
+        except KeyboardInterrupt:
+            print("User interruption received. Exiting...")
+            sys.exit(0)
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred while backing up file: {file_path}")
     
@@ -378,6 +403,10 @@ if __name__ == "__main__":
         root = TkinterDnD.Tk()  
         setup_ui(root, output_directories)  
         root.mainloop()
+    
+    except KeyboardInterrupt:
+        print("User interruption received. Exiting...")
+        sys.exit(0)
         
     except Exception as e:
         show_error_message("An unrecoverable error occurred: {}".format(e))
