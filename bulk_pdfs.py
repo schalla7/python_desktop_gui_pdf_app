@@ -253,7 +253,7 @@ def setup_ui(root, output_directories):
     root.geometry('1200x700')
     
     # Configure the input-box (left) frame
-    left_frame = tk.Frame(root, width=600)  
+    left_frame = tk.Frame(root, width=600, pady=20)  
     left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=False, padx=20, pady=20)
     left_frame.pack_propagate(False)
     
@@ -263,15 +263,15 @@ def setup_ui(root, output_directories):
     add_button = tk.Button(left_frame, text="Add Files...",
                        font=('Helvetica', 14, 'bold'), bg='blue', fg='white',
                        command=lambda: add_files(files_list, action_var, process_button))
-    add_button.pack(side=tk.BOTTOM, fill=tk.X, padx=20, pady=20)
+    add_button.pack(side=tk.BOTTOM, fill=tk.X)
     
     # Configure the fixed-width middle frame
     middle_frame = tk.Frame(root, width=200)  # Set a width that suits your needs
-    middle_frame.pack(side=tk.LEFT, fill=tk.Y)
+    middle_frame.pack(side=tk.LEFT, fill=tk.Y, pady=40)
     middle_frame.pack_propagate(False)
     
     # Configure the output-box (right) frame
-    right_frame = tk.Frame(root)  # Decreased maximum size
+    right_frame = tk.Frame(root, pady=20)  # Decreased maximum size
     right_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     output_text = tk.Text(right_frame, state='disabled', bg="white", font=('Helvetica', 10))
     output_text.pack(fill=tk.BOTH, padx=20, pady=20, expand=True)
@@ -279,16 +279,21 @@ def setup_ui(root, output_directories):
     
     # Group related items in frames for better control
     action_group_frame = tk.Frame(middle_frame)
-    action_group_frame.pack(fill=tk.X, padx=20, pady=10)  # Add padding as needed for group separation
+    action_group_frame.pack(fill=tk.X)  # Add padding as needed for group separation
 
-    image_group_frame = tk.Frame(middle_frame)
-    image_group_frame.pack(fill=tk.X, padx=20, pady=30)  # Increase pady for more separation between groups
+    vspace_frame = tk.Frame(middle_frame, height=50)
+    vspace_frame.pack(fill=tk.X)
+
+    image_group_frame = tk.Frame(middle_frame, height=400)
+    image_group_frame.pack(fill=tk.X)  # Increase pady for more separation between groups
+    image_group_frame.pack_propagate(False)
+    
 
     output_path_group_frame = tk.Frame(middle_frame)
-    output_path_group_frame.pack(fill=tk.X, padx=20, pady=30)  # Increase pady for more separation between groups
+    output_path_group_frame.pack(fill=tk.X)  # Increase pady for more separation between groups
 
     process_list_group_frame = tk.Frame(middle_frame)
-    process_list_group_frame.pack(fill=tk.X, padx=20, pady=10)  # Add padding as needed for group separation
+    process_list_group_frame.pack(side=tk.BOTTOM, fill=tk.X)  # Add padding as needed for group separation
     
     action_var = tk.StringVar(value="Select action...")
     actions = ["Extract First Pages", "Insert Image"]
