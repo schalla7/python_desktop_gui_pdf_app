@@ -263,8 +263,7 @@ def setup_ui(root, output_directories):
     # Configure the input-box (left) frame
     left_frame = tk.Frame(root)  # Increased minimum size
     left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=10)
-    files_list = tk.Listbox(left_frame, selectmode='extended')
-    files_list.pack(fill=tk.BOTH, expand=True)
+    
 
     # Configure the output-box (right) frame
     right_frame = tk.Frame(root)  # Decreased maximum size
@@ -277,7 +276,7 @@ def setup_ui(root, output_directories):
     output_text.pack(fill=tk.BOTH, expand=False)
     
 
-    files_list = tk.Listbox(left_frame)
+    files_list = tk.Listbox(left_frame, selectmode='extended')
     files_list.pack(fill=tk.BOTH, expand=True)
 
     output_list = tk.Listbox(right_frame)
