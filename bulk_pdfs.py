@@ -61,19 +61,32 @@ def setup_ui(root, output_directories):
         if filepath:
             image_path_var.set(filepath)
             update_process_button_state(action_var, files_list, process_button)
+            update_image_selection_visibility(action_var.get())
+            image_file_selected_var.set(True)
+        else:
+            image_file_selected_var.set(False)
+        update_image_selection_visibility(action_var.get())
+
             
     def update_image_selection_visibility(action):
         if action == "Insert Image":
-            # process_button.pack_forget()
             image_path_label.pack(in_=image_group_frame, fill=tk.X)
             select_image_button.pack(in_=image_group_frame, fill=tk.X)
+            image_file_selected = image_file_selected_var.get()
+            if image_file_selected == True:
+                coord_frame.pack(in_=image_group_frame, fill=tk.X)
+                
+            else:
+                coord_frame.pack_forget()
 
         elif action == "Extract First Pages":
             image_path_label.pack_forget()
             select_image_button.pack_forget()
+            coord_frame.pack_forget()
         else:
             image_path_label.pack_forget()
             select_image_button.pack_forget()
+            coord_frame.pack_forget()
             
     def change_output_directory():
         directory = os.path.abspath(filedialog.askdirectory())
@@ -94,9 +107,7 @@ def setup_ui(root, output_directories):
             os.makedirs(output_directories['image_inserted_dir'], exist_ok=True)
             os.makedirs(output_directories['first_pages_individual_dir'], exist_ok=True)
             os.makedirs(output_directories['first_pages_combined_dir'], exist_ok=True)
-            
-            
-            
+                      
     def add_files(files_list, action_var, process_button):
         try:
             filenames = filedialog.askopenfilenames(title='Select PDF files', filetypes=[('PDF files', '*.pdf')])
@@ -151,6 +162,17 @@ def setup_ui(root, output_directories):
     def process_insert_image(files, image_path, output_directories, root):
         img_pixmap = fitz.Pixmap(image_path)
         
+        # Retrieve coordinates from entry widgets
+        x_start = int(x_coord.get())
+        width = int(width_entry.get())
+        y_start = int(y_coord.get())
+        height = int(height_entry.get())
+        
+        # Calculate x_end and y_end based on start and width/height
+        x_end = x_start + width
+        y_end = y_start + height
+        rect = fitz.Rect(x_start, y_start, x_end, y_end)
+        
         for file_path in files:
             output_dir = output_directories["image_inserted_dir"]
             
@@ -166,7 +188,7 @@ def setup_ui(root, output_directories):
             try:
                 # Logic to insert the image into the PDF file goes here
                 print(f"About to insert image at the top of file: [{file_path}]")
-                add_image_to_pdf(new_file_path, img_pixmap)
+                add_image_to_pdf(new_file_path, rect, img_pixmap)
                 # Use root.after to safely update the UI from the main thread
                 root.after(0, update_ui_function, "Completed image insertion for {}".format(file_path))
             except Exception as e:
@@ -176,9 +198,9 @@ def setup_ui(root, output_directories):
         img_pixmap = None  # Release the pixmap
         
     
-    def add_image_to_pdf(new_file_path, img_pixmap):
+    def add_image_to_pdf(new_file_path, rect, img_pixmap):
         doc = fitz.open(new_file_path)
-        rect = fitz.Rect(50, 50, 150, 150)
+        # rect = fitz.Rect(50, 50, 150, 150)
         first_page = doc[0]
         first_page.insert_image(rect, pixmap=img_pixmap)
         doc.save(new_file_path, incremental=True, encryption=fitz.PDF_ENCRYPT_KEEP)
@@ -251,6 +273,7 @@ def setup_ui(root, output_directories):
             
     root.title('PDF Processing Tool')
     root.geometry('1200x700')
+    image_file_selected_var = tk.BooleanVar(value=False)
     
     # Configure the input-box (left) frame
     left_frame = tk.Frame(root, width=600, pady=20)  
@@ -281,16 +304,20 @@ def setup_ui(root, output_directories):
     action_group_frame = tk.Frame(middle_frame)
     action_group_frame.pack(fill=tk.X)  # Add padding as needed for group separation
 
-    vspace_frame = tk.Frame(middle_frame, height=50)
-    vspace_frame.pack(fill=tk.X)
+    vspace_frame_1 = tk.Frame(middle_frame, height=50)
+    vspace_frame_1.pack(fill=tk.X)
 
-    image_group_frame = tk.Frame(middle_frame, height=400)
+    image_group_frame = tk.Frame(middle_frame, height=300)
+    
+    
     image_group_frame.pack(fill=tk.X)  # Increase pady for more separation between groups
     image_group_frame.pack_propagate(False)
     
+    vspace_frame_2 = tk.Frame(middle_frame, height=50)
+    vspace_frame_2.pack(fill=tk.X)
 
     output_path_group_frame = tk.Frame(middle_frame)
-    output_path_group_frame.pack(fill=tk.X)  # Increase pady for more separation between groups
+    output_path_group_frame.pack(fill=tk.X, pady=20)  # Increase pady for more separation between groups
 
     process_list_group_frame = tk.Frame(middle_frame)
     process_list_group_frame.pack(side=tk.BOTTOM, fill=tk.X)  # Add padding as needed for group separation
@@ -308,29 +335,47 @@ def setup_ui(root, output_directories):
                                     font=('Helvetica', 12, 'bold'), bg='blue', fg='white',
                                     command=select_image_file)
     select_image_button.pack_forget()  # Start hidden
-    # Numeric inputs for coordinates
+
+    # Main coordinates frame
     coord_frame = tk.Frame(image_group_frame)
-    coord_frame.pack(side=tk.TOP, padx=10, pady=10)
+    # coord_frame.pack(side=tk.TOP, padx=10, pady=10)
 
-    x_label = tk.Label(coord_frame, text="X:")
-    x_label.pack(side=tk.LEFT)
-    x_coord = tk.Entry(coord_frame, width=5)
+    # First row for X coordinates
+    x_frame = tk.Frame(coord_frame)
+    x_frame.pack(fill=tk.X)
+
+    x_label = tk.Label(x_frame, text="X_0:")
+    x_label.pack(side=tk.LEFT, padx=5)
+    x_coord = tk.Entry(x_frame, width=5)
     x_coord.pack(side=tk.LEFT)
+    x_coord.insert(0, '100')
 
-    y_label = tk.Label(coord_frame, text="Y:")
-    y_label.pack(side=tk.LEFT)
-    y_coord = tk.Entry(coord_frame, width=5)
-    y_coord.pack(side=tk.LEFT)
-
-    width_label = tk.Label(coord_frame, text="Width:")
-    width_label.pack(side=tk.LEFT)
-    width_entry = tk.Entry(coord_frame, width=5)
+    width_label = tk.Label(x_frame, text="X_end (Width):")
+    width_label.pack(side=tk.LEFT, padx=5)
+    width_entry = tk.Entry(x_frame, width=5)
     width_entry.pack(side=tk.LEFT)
+    width_entry.insert(0, '300')
 
-    height_label = tk.Label(coord_frame, text="Height:")
-    height_label.pack(side=tk.LEFT)
-    height_entry = tk.Entry(coord_frame, width=5)
+    # Spacer frame for vertical separation, if needed
+    spacer_frame = tk.Frame(coord_frame, height=10)
+    spacer_frame.pack(fill=tk.X)
+    spacer_frame.pack_propagate(False)  # This ensures the frame keeps its size even if empty
+
+    # Second row for Y coordinates
+    y_frame = tk.Frame(coord_frame)
+    y_frame.pack(fill=tk.X)
+
+    y_label = tk.Label(y_frame, text="Y_0:")
+    y_label.pack(side=tk.LEFT, padx=5)
+    y_coord = tk.Entry(y_frame, width=5)
+    y_coord.pack(side=tk.LEFT)
+    y_coord.insert(0, '100')
+
+    height_label = tk.Label(y_frame, text="Y_end (Height):")
+    height_label.pack(side=tk.LEFT, padx=5)
+    height_entry = tk.Entry(y_frame, width=5)
     height_entry.pack(side=tk.LEFT)
+    height_entry.insert(0, '100')
     
     # Add a button to the middle frame to change the output directory
     output_directory_var = tk.StringVar()
