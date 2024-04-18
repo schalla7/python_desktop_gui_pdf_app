@@ -92,7 +92,7 @@ def setup_ui(root, output_directories):
         directory = os.path.abspath(filedialog.askdirectory())
         if directory:
             output_directory_var.set(directory)
-            log_message(f"\n* * *\nOutput directories updated to: {directory}")
+            log_message(f"\n\n* * *\nOutput directories updated to: {directory}\n* * *\n\n")
             
             # Update the output_directories dictionary with new paths
             output_directories['outputs_dir'] = directory
@@ -173,9 +173,12 @@ def setup_ui(root, output_directories):
         y_end = y_start + height
         rect = fitz.Rect(x_start, y_start, x_end, y_end)
         
+        log_message("\nAdding image to each PDF at the following coordinates:\n")
+        log_message(f"\tWidth: From X_start: {x_start} to X_end: {width}")
+        log_message(f"\tHeight: From Y_start {y_start} to Y_end: {height}")
+        
         for file_path in files:
             output_dir = output_directories["image_inserted_dir"]
-            
             try:
                 shutil.copy(file_path, output_dir)
             except Exception as e:
@@ -200,17 +203,17 @@ def setup_ui(root, output_directories):
     
     def add_image_to_pdf(new_file_path, rect, img_pixmap):
         doc = fitz.open(new_file_path)
-        # rect = fitz.Rect(50, 50, 150, 150)
         first_page = doc[0]
         first_page.insert_image(rect, pixmap=img_pixmap)
         doc.save(new_file_path, incremental=True, encryption=fitz.PDF_ENCRYPT_KEEP)
         doc.close()
-        log_message(f"Completed: {new_file_path}")
+        log_message(f"Completed image insertion for: {new_file_path}")
     
     
     def process_extract_first_pages(files, output_directories, root):
         combined_pdf = fitz.open()  # Create a new PDF for combining first pages
         
+        count = 0
         for file_path in files:
             try:
                 # Logic to extract first pages goes here
@@ -222,6 +225,8 @@ def setup_ui(root, output_directories):
                 individual_output_path = os.path.join(output_directories['first_pages_individual_dir'], 
                                                       os.path.basename(file_path))
                 output_pdf.save(individual_output_path)
+                count += 1
+                log_message(f"{count}. Successfully extracted the 1st page of PDF to output dir: \n\t{individual_output_path}\n")
                 output_pdf.close()
                 
                 # Add to combined PDF
@@ -250,6 +255,7 @@ def setup_ui(root, output_directories):
     def process_selected_action(action_var, files_list, image_path_var, output_directories, root):
         backup_originals(files_list, output_directories.get("backup_dir"))
         
+        log_message("---------------------------------------------------------------------------")
         files = files_list.get(0, tk.END)
         action = action_var.get()
         if action == "Insert Image":
