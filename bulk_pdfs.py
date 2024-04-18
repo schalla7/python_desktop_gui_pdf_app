@@ -174,8 +174,8 @@ def setup_ui(root, output_directories):
         rect = fitz.Rect(x_start, y_start, x_end, y_end)
         
         log_message("\nAdding image to each PDF at the following coordinates:\n")
-        log_message(f"\tWidth: From X_start: {x_start} to X_end: {width}")
-        log_message(f"\tHeight: From Y_start {y_start} to Y_end: {height}")
+        log_message(f"\tWidth: From X_0: {x_start} to X_end: {width}")
+        log_message(f"\tHeight: From Y_0 {y_start} to Y_end: {height}")
         
         for file_path in files:
             output_dir = output_directories["image_inserted_dir"]
