@@ -441,18 +441,7 @@ def setup_directories():
     
 
 
-def show_error_message(message):
-    print("Error occurred: " + message, file=sys.stderr)
 
-    # Safely handle GUI updates or closing
-    if root and root.winfo_exists():  
-        messagebox.showerror("Error", message)
-        try:
-            root.destroy()
-            
-        except Exception as e:
-            print("Error while trying to close the application: " + str(e), file=sys.stderr)
-    sys.exit(1)  # Ensure the application exits
 
 def backup_originals(files_list, backup_dir):
     for file_path in files_list.get(0, tk.END):
@@ -464,9 +453,23 @@ def backup_originals(files_list, backup_dir):
             messagebox.showerror("Error", f"An error occurred while backing up file: {file_path}")
     
 if __name__ == "__main__":
+    root = TkinterDnD.Tk()
+    
+    def show_error_message(message):
+        print("Error occurred: " + message, file=sys.stderr)
+
+        # Safely handle GUI updates or closing
+        if root and root.winfo_exists():  
+            messagebox.showerror("Error", message)
+            try:
+                root.destroy()
+                
+            except Exception as e:
+                print("Error while trying to close the application: " + str(e), file=sys.stderr)
+        sys.exit(1)  # Ensure the application exits
+    
     try:
         output_directories = setup_directories()  
-        root = TkinterDnD.Tk()  
         setup_ui(root, output_directories)  
         root.bind('<Control-c>', close_app)
         root.after(50, check)
