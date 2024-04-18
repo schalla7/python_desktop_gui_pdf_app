@@ -11,7 +11,6 @@ import signal
 
 def signal_handler(sig, frame):
     sys.exit(0)
-
 signal.signal(signal.SIGINT, signal_handler)
 
 def close_app(event=None):
@@ -19,6 +18,8 @@ def close_app(event=None):
     
 def check():
     root.after(50, check) # 50 stands for 50 ms.
+    
+
 
 
 def open_pdf_to_print(file_path):
@@ -63,16 +64,37 @@ def setup_ui(root, output_directories):
             
     def update_image_selection_visibility(action):
         if action == "Insert Image":
-            process_button.pack_forget()
-            image_path_label.pack(in_=middle_frame, fill=tk.X)
-            select_image_button.pack(in_=middle_frame, fill=tk.X)
-            process_button.pack(in_=middle_frame, fill=tk.X, pady=20)
+            # process_button.pack_forget()
+            image_path_label.pack(in_=image_group_frame, fill=tk.X)
+            select_image_button.pack(in_=image_group_frame, fill=tk.X)
+
         elif action == "Extract First Pages":
             image_path_label.pack_forget()
             select_image_button.pack_forget()
         else:
             image_path_label.pack_forget()
             select_image_button.pack_forget()
+            
+    def change_output_directory():
+        directory = os.path.abspath(filedialog.askdirectory())
+        if directory:
+            output_directory_var.set(directory)
+            log_message(f"\n* * *\nOutput directories updated to: {directory}")
+            
+            # Update the output_directories dictionary with new paths
+            output_directories['outputs_dir'] = directory
+            output_directories['backup_dir'] = os.path.join(directory, 'backed-up-originals')
+            output_directories['image_inserted_dir'] = os.path.join(directory, 'Image-Inserted-On-Each')
+            output_directories['first_pages_dir'] = os.path.join(directory, 'First-Pages')
+            output_directories['first_pages_individual_dir'] = os.path.join(directory, 'First-Pages', 'First-Pages-Individual')
+            output_directories['first_pages_combined_dir'] = os.path.join(directory, 'First-Pages', 'Combined')
+            
+            # Create the subdirectories
+            os.makedirs(output_directories['backup_dir'], exist_ok=True)
+            os.makedirs(output_directories['image_inserted_dir'], exist_ok=True)
+            os.makedirs(output_directories['first_pages_individual_dir'], exist_ok=True)
+            os.makedirs(output_directories['first_pages_combined_dir'], exist_ok=True)
+            
             
             
     def add_files(files_list, action_var, process_button):
@@ -254,10 +276,24 @@ def setup_ui(root, output_directories):
     output_text = tk.Text(right_frame, state='disabled', bg="white", font=('Helvetica', 10))
     output_text.pack(fill=tk.BOTH, padx=20, pady=20, expand=True)
 
+    
+    # Group related items in frames for better control
+    action_group_frame = tk.Frame(middle_frame)
+    action_group_frame.pack(fill=tk.X, padx=20, pady=10)  # Add padding as needed for group separation
+
+    image_group_frame = tk.Frame(middle_frame)
+    image_group_frame.pack(fill=tk.X, padx=20, pady=30)  # Increase pady for more separation between groups
+
+    output_path_group_frame = tk.Frame(middle_frame)
+    output_path_group_frame.pack(fill=tk.X, padx=20, pady=30)  # Increase pady for more separation between groups
+
+    process_list_group_frame = tk.Frame(middle_frame)
+    process_list_group_frame.pack(fill=tk.X, padx=20, pady=10)  # Add padding as needed for group separation
+    
     action_var = tk.StringVar(value="Select action...")
     actions = ["Extract First Pages", "Insert Image"]
     action_dropdown = tk.OptionMenu(root, action_var, *actions)
-    action_dropdown.pack(in_=middle_frame, side=tk.TOP, fill=tk.X, pady=20)
+    action_dropdown.pack(in_=action_group_frame, side=tk.TOP, fill=tk.X)
 
     image_path_var = tk.StringVar()
     image_path_label = tk.Label(root, textvariable=image_path_var)
@@ -268,6 +304,18 @@ def setup_ui(root, output_directories):
                                     command=select_image_file)
     select_image_button.pack_forget()  # Start hidden
     
+    # Add a button to the middle frame to change the output directory
+    output_directory_var = tk.StringVar()
+    output_directory_var.set(output_directories["outputs_dir"]) 
+    output_dir_label = tk.Label(root, textvariable=output_directory_var)
+    output_dir_label.pack(in_=output_path_group_frame, fill=tk.X)
+    change_output_dir_button = tk.Button(
+        middle_frame, 
+        text="Change Output Directory",
+        command=change_output_directory
+    )
+    change_output_dir_button.pack(in_=output_path_group_frame, side=tk.TOP)
+    
     process_button = tk.Button(
         root, 
         text="Process List", 
@@ -276,7 +324,7 @@ def setup_ui(root, output_directories):
         command=lambda: process_selected_action(action_var, files_list, image_path_var, output_directories, root)
     )
     process_button.config(state=tk.DISABLED, bg="grey")
-    process_button.pack(in_=middle_frame, fill=tk.X, pady=20)
+    process_button.pack(in_=process_list_group_frame, fill=tk.X)
 
     files_list.drop_target_register(DND_FILES)
     files_list.dnd_bind('<<Drop>>', 
@@ -304,12 +352,15 @@ def setup_directories():
     print("done.\n")
 
     return {
+        'outputs_dir': outputs_dir,
         'backup_dir': backup_dir,
         'image_inserted_dir': image_inserted_dir,
         'first_pages_dir': first_pages_dir,
         'first_pages_individual_dir': first_pages_individual_dir,
         'first_pages_combined_dir': first_pages_combined_dir
     }
+    
+
 
 def show_error_message(message):
     print("Error occurred: " + message, file=sys.stderr)
