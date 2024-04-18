@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog
@@ -12,6 +13,26 @@ def open_pdf_to_print(file_path):
     os.startfile(file_path, "print")
 
 def setup_ui(root, output_directories):
+    
+    def log_message(message, status="info"):
+        """
+        Logs a message to the output_text widget.
+        'status' can be 'info' for general information, 'success' for success messages, or 'error' for error messages.
+        """
+        # Colors for different statuses
+        colors = {
+            "info": "black",
+            "success": "green",
+            "error": "red"
+        }
+        color = colors.get(status, "black")
+
+        # Insert the message
+        output_text.config(state='normal')
+        output_text.insert(tk.END, message + "\n", status)
+        output_text.tag_config(status, foreground=color)
+        output_text.config(state='disabled')
+        output_text.yview(tk.END)  # Auto-scroll to the bottom
     
     def toggle_print_options():
         # This function will run whenever 'print_now_var' changes
@@ -32,9 +53,8 @@ def setup_ui(root, output_directories):
     def resize_window(files_list, root):
         longest_path = max((files_list.get(idx) for idx in range(files_list.size())), key=len, default='')
         estimated_width = min(16 * len(longest_path), root.winfo_screenwidth())  # Assume character width of 16 pixels
-        new_width = max(800, estimated_width)  # Ensure minimum width of 800
-        root.geometry(f'{new_width}x600')  # Adjust height as needed
-        
+        new_width = max(1200, estimated_width)  # Ensure minimum width of 1200
+        root.geometry(f'{new_width}x700')  # Adjust height as needed
     
     def select_image_file():
         filepath = filedialog.askopenfilename(
@@ -63,7 +83,9 @@ def setup_ui(root, output_directories):
             image_path_label.pack_forget()
             select_image_button.pack_forget()
             # Show the printing options
-            print_now_checkbox.pack(side=tk.TOP, pady=5, fill=tk.X)
+            # print_now_checkbox.pack(side=tk.TOP, pady=5, fill=tk.X)
+            print_now_checkbox.pack(side=tk.TOP, fill=tk.X, padx=20)
+    
             print_individual_checkbox.pack(side=tk.TOP, pady=5, fill=tk.X)
             print_combined_checkbox.pack(side=tk.TOP, pady=5, fill=tk.X)
             # Show or hide the dependent checkboxes based on the current state
@@ -104,37 +126,12 @@ def setup_ui(root, output_directories):
         valid_image_selected = bool(image_path_var.get())
         
         if action == "Insert Image" and not valid_image_selected:
-            process_button.config(state=tk.DISABLED)
+            process_button.config(state=tk.DISABLED, bg="grey")
         elif files_list.size() > 0 and action != "Select action...":
-            process_button.config(state=tk.NORMAL)
+            process_button.config(state=tk.NORMAL, bg="green")
         else:
-            process_button.config(state=tk.DISABLED)
+            process_button.config(state=tk.DISABLED, bg="grey")
             
-    def process_insert_image(files, image_path, output_dir, root):
-        for file_path in files:
-            try:
-                # Logic to insert the image into the PDF file goes here
-                print(f"About to insert image at the top of file: [{file_path}]")
-                add_image_to_pdf(file_path, image_path, output_dir)
-                # Use root.after to safely update the UI from the main thread
-                root.after(0, update_ui_function, "Completed image insertion for {}".format(file_path))
-            except Exception as e:
-                error_message = "Failed to insert image for {}: {}".format(file_path, str(e))
-                root.after(0, show_error_message, error_message)
-
-    def process_extract_first_pages(files, output_directories, root):
-        for file_path in files:
-            try:
-                # Logic to extract first pages goes here
-                # You would pass the actual print_now_var.get(), etc. to this function as needed
-                print(f"About to extract the first page for: [{file_path}]")
-                extract_first_pages(file_path, output_directories['first_pages_dir'], True)
-                # Use root.after to safely update the UI from the main thread
-                root.after(0, update_ui_function, "Extracted first page for {}".format(file_path))
-            except Exception as e:
-                error_message = "Failed to extract first page for {}: {}".format(file_path, str(e))
-                root.after(0, show_error_message, error_message)
-    
     # These are helper functions to update the UI and show error messages
     def update_ui_function(message):
         # Update the UI with the progress message
@@ -142,57 +139,131 @@ def setup_ui(root, output_directories):
         pass
     
     
+    def process_insert_image(files, image_path, output_directories, root):
+        img_pixmap = fitz.Pixmap(image_path)
         
-    def add_image_to_pdf(file_path, img_obj, output_dir, update_status):
-        doc = fitz.open(file_path)
-        rect = fitz.Rect(0, 0, 50, 50)
+        for file_path in files:
+            output_dir = output_directories["image_inserted_dir"]
+            
+            try:
+                shutil.copy(file_path, output_dir)
+            except Exception as e:
+                error_message = "Failed to copy file for {}: {}".format(file_path, str(e))
+                print(f"\n!\n! Error!\n!\n! {error_message}\n! {e}\n!\n")
+                root.after(0, show_error_message, error_message)
+            
+            new_file_path = os.path.join(output_dir, os.path.basename(file_path))
+            
+            try:
+                # Logic to insert the image into the PDF file goes here
+                print(f"About to insert image at the top of file: [{file_path}]")
+                add_image_to_pdf(new_file_path, img_pixmap)
+                # Use root.after to safely update the UI from the main thread
+                root.after(0, update_ui_function, "Completed image insertion for {}".format(file_path))
+            except Exception as e:
+                error_message = "Failed to insert image for {}: {}".format(file_path, str(e))
+                print(f"\n!\n! Error!\n!\n! {error_message}\n! {e}\n!\n")
+                root.after(0, show_error_message, error_message)
+        img_pixmap = None  # Release the pixmap
+        
+    
+    def add_image_to_pdf(new_file_path, img_pixmap):
+        doc = fitz.open(new_file_path)
+        rect = fitz.Rect(50, 50, 150, 150)
         first_page = doc[0]
-        first_page.insert_image(rect, stream=img_obj)
-        new_file_path = os.path.join(output_dir, os.path.basename(file_path))
+        first_page.insert_image(rect, pixmap=img_pixmap)
         doc.save(new_file_path, incremental=True, encryption=fitz.PDF_ENCRYPT_KEEP)
         doc.close()
-        update_status(f"Completed: {file_path}")
+        log_message(f"Completed: {new_file_path}")
+    
+    
+    def process_extract_first_pages(files, output_directories, root, print_now, print_individual, print_combined):
+        combined_pdf = fitz.open()  # Create a new PDF for combining first pages
         
-    def extract_first_pages(file_path, output_dir, print_now):
-        doc = fitz.open(file_path)
-        first_page = doc.load_page(0)
-        output_pdf = fitz.open()
-        output_pdf.insert_pdf(doc, from_page=0, to_page=0)
-        output_path = os.path.join(output_dir, os.path.basename(file_path))
-        output_pdf.save(output_path)
-        output_pdf.close()
-        if print_now:
-            open_pdf_to_print(output_path)
-            # output_pdf.print()  # Simplified, adjust based on how you want to handle printing
-        doc.close()
+        for file_path in files:
+            try:
+                # Logic to extract first pages goes here
+                # You would pass the actual print_now_var.get(), etc. to this function as needed
+                print(f"About to extract the first page for: [{file_path}]")
+                doc = fitz.open(file_path)
+                first_page = doc.load_page(0)
+                output_pdf = fitz.open()
+                output_pdf.insert_pdf(doc, from_page=0, to_page=0)
+                individual_output_path = os.path.join(output_directories['first_pages_individual_dir'], 
+                                                      os.path.basename(file_path))
+                output_pdf.save(individual_output_path)
+                output_pdf.close()
+                
+                # Add to combined PDF
+                combined_pdf.insert_pdf(doc, from_page=0, to_page=0)
+                
+                doc.close()
+                
+                # Optional print of individual files
+                if print_now and print_individual:
+                    open_pdf_to_print(individual_output_path)
+                    
+                # Use root.after to safely update the UI from the main thread
+                root.after(0, update_ui_function, "Extracted first page for {}".format(file_path))
+                
+            except Exception as e:
+                error_message = "Failed to extract first page for {}: {}".format(file_path, str(e))
+                root.after(0, show_error_message, error_message)
+        
+        # Save the combined PDF
+        combined_output_path = os.path.join(output_directories['first_pages_combined_dir'], 'combined_first_pages.pdf')
+        try:
+            combined_pdf.save(combined_output_path)
+            log_message(f"Successfully combined each first-page into single PDF: {combined_output_path}", "success")
+        except Exception as e:
+            log_message(f"Failed to combined each first-page into single PDF {combined_output_path}: {str(e)}", "error")
+        combined_pdf.close()
+
+        # Optional print of the combined PDF
+        if print_now and print_combined:
+            open_pdf_to_print(combined_output_path)
+    
             
     def process_selected_action(action_var, files_list, image_path_var, output_directories, root):
-        action = action_var.get()
-        files = files_list.get(0, tk.END)
+        backup_originals(files_list, output_directories.get("backup_dir"))
         
+        files = files_list.get(0, tk.END)
+        action = action_var.get()
         if action == "Insert Image":
             image_path = image_path_var.get()
             if image_path:
                 threading.Thread(
                     target=process_insert_image, 
-                    args=(files, image_path, output_directories['image_inserted_dir'], root)
+                    args=(files, image_path, output_directories, root)
                 ).start()
             else:
                 messagebox.showerror("Error", "No image file selected.")
         elif action == "Extract First Pages":
             threading.Thread(
                 target=process_extract_first_pages, 
-                args=(files, output_directories, root)
+                args=(files, output_directories, root,
+                      print_now_var.get(), print_individual_var.get(), print_combined_var.get())
             ).start()
-        
             
     root.title('PDF Processing Tool')
-    root.geometry('800x600')
-
-    left_frame = tk.Frame(root)
-    right_frame = tk.Frame(root)
+    root.geometry('1200x700')
+    
+    # Configure the input-box (left) frame
+    left_frame = tk.Frame(root)  # Increased minimum size
     left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=10)
+    files_list = tk.Listbox(left_frame)
+    files_list.pack(fill=tk.BOTH, expand=True)
+
+    # Configure the output-box (right) frame
+    right_frame = tk.Frame(root)  # Decreased maximum size
     right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10, pady=10)
+    output_text = tk.Text(right_frame, height=10, state='disabled', bg="white", font=('Helvetica', 10))
+    output_text.pack(fill=tk.BOTH, expand=True)
+    # paned_window.add(right_frame, stretch="never")
+    
+    output_text = tk.Text(right_frame, height=10, state='disabled', bg="white", font=('Helvetica', 10))
+    output_text.pack(fill=tk.BOTH, expand=False)
+    
 
     files_list = tk.Listbox(left_frame)
     files_list.pack(fill=tk.BOTH, expand=True)
@@ -202,12 +273,17 @@ def setup_ui(root, output_directories):
 
     action_var = tk.StringVar(value="Select action...")
     actions = ["Extract First Pages", "Insert Image"]
+    # action_dropdown.pack(side=tk.TOP, pady=20)
     action_dropdown = tk.OptionMenu(root, action_var, *actions)
-    action_dropdown.pack(side=tk.TOP, pady=20)
+    # action_dropdown.config(font=('Helvetica', 12), bg='blue', fg='white')
+    # action_dropdown["menu"].config(bg="blue", fg="white")
+    action_dropdown.pack(side=tk.TOP, fill=tk.X, padx=100, pady=20)
 
-    add_button = tk.Button(left_frame, text="Add PDFs...", 
-                            command=lambda: add_files(files_list, action_var, process_button))
-    add_button.pack()
+    add_button = tk.Button(left_frame, text="Add Files...",
+                       font=('Helvetica', 12, 'bold'), bg='blue', fg='white',
+                       command=lambda: add_files(files_list, action_var, process_button))
+    add_button.config(width=20)
+    add_button.pack(side=tk.TOP, fill=tk.X, padx=20, pady=10)
 
     image_path_var = tk.StringVar()
     image_path_label = tk.Label(root, textvariable=image_path_var)
@@ -216,13 +292,12 @@ def setup_ui(root, output_directories):
     select_image_button.pack_forget()  # Start hidden
     
     process_button = tk.Button(
-        root, 
-        text="Process List", 
-        state=tk.DISABLED, 
+        root, text="Process List", state=tk.DISABLED,
+        font=('Helvetica', 14, 'bold'), bg='green', fg='white',
         command=lambda: process_selected_action(action_var, files_list, image_path_var, output_directories, root)
     )
-
-    process_button.pack(side=tk.BOTTOM, pady=10)
+    process_button.config(state=tk.DISABLED, bg="grey")
+    process_button.pack(side=tk.TOP, pady=20)
 
     files_list.drop_target_register(DND_FILES)
     files_list.dnd_bind('<<Drop>>', 
@@ -238,6 +313,7 @@ def setup_ui(root, output_directories):
     print_now_checkbox = tk.Checkbutton(root, text="Also print the output now", variable=print_now_var)
     print_individual_checkbox = tk.Checkbutton(root, text="Print each first page separately", variable=print_individual_var)
     print_combined_checkbox = tk.Checkbutton(root, text="Print combination of first pages", variable=print_combined_var)
+    
     # Bind the 'toggle_print_options' function to changes in 'print_now_var'
     print_now_var.trace_add('write', lambda *args: toggle_print_options())
         
@@ -248,18 +324,20 @@ def setup_directories():
     outputs_dir = os.path.join(base_dir, 'outputs')
     image_inserted_dir = os.path.join(outputs_dir, 'Image-Inserted-On-Each')
     first_pages_dir = os.path.join(outputs_dir, 'First-Pages', 'First-Pages-Individual')
-    combined_dir = os.path.join(outputs_dir, 'First-Pages', 'Combined')
+    first_pages_individual_dir = os.path.join(outputs_dir, 'First-Pages', 'First-Pages-Individual')
+    first_pages_combined_dir = os.path.join(outputs_dir, 'First-Pages', 'Combined')
 
     os.makedirs(backup_dir, exist_ok=True)
     os.makedirs(image_inserted_dir, exist_ok=True)
     os.makedirs(first_pages_dir, exist_ok=True)
-    os.makedirs(combined_dir, exist_ok=True)
+    os.makedirs(first_pages_combined_dir, exist_ok=True)
 
     return {
         'backup_dir': backup_dir,
         'image_inserted_dir': image_inserted_dir,
         'first_pages_dir': first_pages_dir,
-        'combined_dir': combined_dir
+        'first_pages_individual_dir': first_pages_individual_dir,
+        'first_pages_combined_dir': first_pages_combined_dir
     }
 
 def show_error_message(message):
@@ -274,6 +352,15 @@ def show_error_message(message):
             print("Error while trying to close the application: " + str(e), file=sys.stderr)
     sys.exit(1)  # Ensure the application exits
 
+def backup_originals(files_list, backup_dir):
+    for file_path in files_list.get(0, tk.END):
+        try:
+            file_name = os.path.basename(file_path)
+            dest_path = os.path.join(backup_dir, file_name)
+            shutil.copy2(file_path, dest_path)
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred while backing up file: {file_path}")
+    
 if __name__ == "__main__":
     try:
         output_directories = setup_directories()  
